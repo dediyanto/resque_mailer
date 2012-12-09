@@ -3,7 +3,7 @@ require 'resque_mailer/version'
 module Resque
   module Mailer
     class << self
-      attr_accessor :default_queue_name, :default_queue_target, :current_env, :logger, :fallback_to_synchronous, :error_handler
+      attr_accessor :default_queue_name, :default_queue_target, :current_env, :logger, :fallback_to_synchronous, :error_handler, :sending_status
       attr_reader :excluded_environments
 
       def excluded_environments=(envs)
@@ -39,9 +39,11 @@ module Resque
       end
 
       def perform(action, *args)
+        status = 'failed'
         begin
           message = self.send(:new, action, *args).message
           message.deliver
+          status = 'success'
         rescue Exception => ex
           if Mailer.error_handler
             Mailer.error_handler.call(self, message, ex)
@@ -53,7 +55,9 @@ module Resque
             
             raise ex
           end
+          status = 'failed'
         end
+        Mailer.sending_status.call(status)
       end
 
       def queue
