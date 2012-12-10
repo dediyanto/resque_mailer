@@ -57,7 +57,7 @@ module Resque
           end
           status = 'failed'
         end
-        Mailer.sending_status.call(status)
+        Mailer.sending_status.call(status) if Mailer.sending_status
       end
 
       def queue
